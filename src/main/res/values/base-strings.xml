@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+ Copyright 2013 The Android Open Source Project
+
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+-->
+
+<resources>
+    <string name="app_name">BluetoothChat</string>
+    <string name="intro_message">
+        <![CDATA[
+        
+            
+           这个应用程序可以让两台安卓设备通过蓝牙双向播放音频。
+              (1) 扫描另一台蓝牙设备
+              (2) 通过右上角菜单扫描com.lokey.bluetoothchat/file中的文件
+              (3) 点击返回的文件名即可复制
+              (4) 通过发送[1:文件名]方式加载音频
+              (5) 通过右上角菜单控制播放器行为
+
+            
+        
+        ]]>
+    </string>
+</resources>
