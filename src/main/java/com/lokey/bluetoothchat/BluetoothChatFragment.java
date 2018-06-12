@@ -99,7 +99,8 @@ public class BluetoothChatFragment extends Fragment {
     private BluetoothChatService mChatService = null;
 
     private MediaPlayer mediaPlayer = new MediaPlayer();
-
+    private Boolean isPlaying = false;
+    private Menu menu;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -113,6 +114,10 @@ public class BluetoothChatFragment extends Fragment {
             FragmentActivity activity = getActivity();
             Toast.makeText(activity, "Bluetooth is not available", Toast.LENGTH_LONG).show();
             activity.finish();
+        }
+        final ActionBar actionBar = getActivity().getActionBar();
+        if (null != actionBar) {
+            actionBar.setTitle("");
         }
 
 
@@ -186,18 +191,9 @@ public class BluetoothChatFragment extends Fragment {
                 String text = textView.getText().toString();
                 int index = text.indexOf("s:");
                 if(index != -1){
-                    if(text.lastIndexOf(".")!= -1){
+                    TextView textViewInput = getView().findViewById(R.id.edit_text_out);
+                    textViewInput.setText("1:" + text.substring(index + 2));
 
-                        TextView textViewInput = getView().findViewById(R.id.edit_text_out);
-                        textViewInput.setText("1:" + text.substring(index + 2,text.lastIndexOf(".")));
-//                        ClipboardManager mClipboard;
-//                        mClipboard = (ClipboardManager)getActivity().getSystemService(CLIPBOARD_SERVICE);
-//                        ClipData mClip;
-//                        mClip = ClipData.newPlainText("text", "1:" + text.substring(index + 2,text.lastIndexOf(".")));
-//                        mClipboard.setPrimaryClip(mClip);
-
-                        Toast.makeText(getActivity(), "已复制", Toast.LENGTH_SHORT).show();
-                    }
                 }
 
             }
@@ -338,21 +334,34 @@ public class BluetoothChatFragment extends Fragment {
                     byte[] writeBuf = (byte[]) msg.obj;
                     // construct a string from the buffer
                     String writeMessage = new String(writeBuf);
+                    if(writeMessage.lastIndexOf(";") == writeMessage.length() - 1){
+                        return;
+                    }
                     mConversationArrayAdapter.add("我:  " + writeMessage);
                     break;
                 case Constants.MESSAGE_READ:
                     byte[] readBuf = (byte[]) msg.obj;
                     // construct a string from the valid bytes in the buffer
                     String readMessage = new String(readBuf, 0, msg.arg1);//arg1 为长度
-//                    MediaPlayer mediaPlayer1 = new MediaPlayer();
                     if(readMessage.indexOf("1:") != -1){
                         try{
-                            String musicName = "/" + readMessage.substring(2) + ".mp3";
+                            String musicName = "/" + readMessage.substring(2);
                             File file = new File(getActivity().getExternalFilesDir(null).toString() + musicName);
                             if(file.exists()){
-
+                                if(mediaPlayer!= null){
+                                    mediaPlayer.stop();
+                                    mediaPlayer.release();
+                                    mChatService.write(("stop;").getBytes());
+                                    mediaPlayer = new MediaPlayer();
+                                }
                                 mediaPlayer.setDataSource(file.getPath());
                                 mediaPlayer.prepare();
+                                mediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
+                                    @Override
+                                    public void onCompletion(MediaPlayer mediaPlayer) {
+                                        mChatService.write(("pause;").getBytes());
+                                    }
+                                });
                                 mChatService.write((musicName.substring(1) + "加载完毕").getBytes());
 
 
@@ -373,13 +382,15 @@ public class BluetoothChatFragment extends Fragment {
                         if(mediaPlayer != null){
                             if(mediaPlayer.isPlaying()){
                                 mediaPlayer.pause();
-                                mChatService.write(("暂停").getBytes());
+                                mChatService.write(("pause;").getBytes());
+
 
                             }
                             else{
                                 mediaPlayer.start();
                                 if(mediaPlayer.isPlaying()){
-                                    mChatService.write(("播放").getBytes());
+                                    mChatService.write(("play;").getBytes());
+
                                 }
                                 else{
                                     mChatService.write(("播放器未加载音频").getBytes());
@@ -387,11 +398,12 @@ public class BluetoothChatFragment extends Fragment {
 
                             }
                         }
+                        return;
                     }
                     else if (readMessage.indexOf("3;") != -1){
                         if(mediaPlayer != null){
                             mediaPlayer.stop();
-                            mChatService.write(("停止").getBytes());
+                            mChatService.write(("stop;").getBytes());
                         }
 //                        else{
 //                            mChatService.write(("播放器未加载音频").getBytes());
@@ -402,6 +414,11 @@ public class BluetoothChatFragment extends Fragment {
                         for(int i = 0;i<files.length;i++){
                             if(files[i].isFile()){
                                 fileString = files[i].getName();
+                                try {
+                                    Thread.sleep(50);
+                                } catch (InterruptedException e) {
+                                    e.printStackTrace();
+                                }
                                 mChatService.write(("s:" + files[i].getName()).getBytes());
                             }
                         }
@@ -410,6 +427,15 @@ public class BluetoothChatFragment extends Fragment {
                             return;
                         }
 
+                    }else if(readMessage.indexOf("play;") != -1){
+                        MenuItem menuItem = menu.findItem(R.id.playorpause);
+                        menuItem.setIcon(R.drawable.ic_action_pause);
+                        return;
+
+                    }else if(readMessage.indexOf("pause;") != -1 || readMessage.indexOf("stop;") != -1){
+                        MenuItem menuItem = menu.findItem(R.id.playorpause);
+                        menuItem.setIcon(R.drawable.ic_action_play);
+                        return;
                     }
                     mConversationArrayAdapter.add(mConnectedDeviceName + ":  " + readMessage);
                     break;
@@ -478,7 +504,14 @@ public class BluetoothChatFragment extends Fragment {
 
     @Override
     public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
+        this.menu = menu;
         inflater.inflate(R.menu.bluetooth_chat, menu);
+    }
+
+    @Override
+    public void onPrepareOptionsMenu(Menu menu) {
+
+        super.onPrepareOptionsMenu(menu);
     }
 
     @Override
